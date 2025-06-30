@@ -1,0 +1,26 @@
+# .air.toml
+# Configuration file for the 'air' live-reloader.
+
+# The root directory of the project inside the container.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Command to build the application.
+cmd = "go build -o ./tmp/main ."
+# The path to the compiled binary to execute. Be explicit with the relative path.
+bin = "./tmp/main"
+
+# Watch for changes in these file extensions.
+# Adding .csv will cause a reload when you change your redirect rules.
+include_ext = ["go", "toml", "csv"]
+# Exclude these directories from watching to save resources.
+exclude_dir = ["tmp", "vendor", "testdata"]
+
+[log]
+# Show log timestamps.
+time = true
+
+[misc]
+# Delete the temporary directory on exit.
+clean_on_exit = true

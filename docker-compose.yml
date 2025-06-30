@@ -1,0 +1,68 @@
+services:
+  # This service is the Traefik reverse proxy
+  traefik:
+    image: "traefik:v3.0"
+    container_name: "traefik"
+    command:
+      # Enable the API (for dashboard) but make it insecure for local viewing.
+      # In production, you'd want to secure this.
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Define the Let's Encrypt resolver
+      - --certificatesresolvers.myresolver.acme.httpchallenge=true
+      # IMPORTANT: Change this to your email address
+      - --certificatesresolvers.myresolver.acme.email=username@example.com
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      # Middleware to redirect all HTTP traffic to HTTPS
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+    environment:
+      - "TZ=Pacific/Auckland"
+    ports:
+      - "80:80"    # For HTTP traffic
+      - "443:443"  # For HTTPS traffic
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      # Persist the SSL certificates
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - web
+
+  # This is your Go redirector application
+  redirect-app:
+    # Build the image from the Dockerfile in the redirector directory
+    # build: ./redirector
+    # container_name: redirect-app
+    image: "ghcr.io/thepearson/swerve:latest"
+    restart: unless-stopped
+    networks:
+      - web
+    volumes:
+      # Mount the local redirects.csv into the container at /app/redirects.csv
+      # The 'ro' flag makes it read-only inside the container for safety.
+      - ./redirects:/app/redirects:ro
+    # Traefik labels that define how to route traffic to this service
+    labels:
+      - "traefik.enable=true"
+
+      # The routing rule. Traefik will listen for requests on these hosts.
+      # IMPORTANT: Change these to your actual domains.
+      # Multiple domains can be added via Host(`demo.example.com`,`extra.example.com`) etc
+      # Ensure DNS for ALL these domains points to your server's IP.
+      - "traefik.http.routers.redirect-app.rule=Host(`redirector.example.com`)"
+
+      # Use the 'websecure' entrypoint (port 443/HTTPS)
+      - "traefik.http.routers.redirect-app.entrypoints=websecure"
+      # Use the 'myresolver' Let's Encrypt resolver for SSL certificates
+      - "traefik.http.routers.redirect-app.tls.certresolver=myresolver"
+      # Tell Traefik which port the service is listening on inside the container
+      - "traefik.http.services.redirect-app.loadbalancer.server.port=8080"
+
+networks:
+  web:
+    driver: bridge

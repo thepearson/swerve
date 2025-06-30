@@ -1,0 +1,36 @@
+source_host,match_type,source_path_or_regex,target_url_format,status_code,weight
+
+#
+# Lines starting with # are comments. Empty lines are also ignored.
+#
+# Rules are evaluated per-host, in order of weight (highest first).
+#
+
+
+
+# --- old-site.com Rules ---
+
+# Rule with higher weight (200) runs first. Matches /products/123 -> .../items/123
+old-site.com,regex,^/products/(\d+),https://new-site.com/items/$1,301,200
+
+# A more specific regex for the blog (weight 150)
+old-site.com,regex,^/blog/.*,https://blog.new-site.com$path,301,150
+
+# A simple exact match for a single page (weight 100)
+old-site.com,exact,/about-us,https://new-site.com/company/about,301,100
+
+# A catch-all for anything else on old-site.com (lowest weight: 50)
+# Matches any path and rewrites it to archive.new-site.com/old-site/...
+old-site.com,regex,^/.*,https://archive.new-site.com/old-site$path,301,50
+
+
+
+
+# --- another-domain.net Rules ---
+
+# A simple redirect for the homepage
+another-domain.net,exact,/,https://another-new-site.com,302,100
+
+# Redirect an entire section, keeping the path
+another-domain.net,regex,^/support/.*,https://help.another-new-site.com$path,301,50
+

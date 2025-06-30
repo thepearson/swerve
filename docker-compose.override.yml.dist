@@ -1,0 +1,46 @@
+services:
+  traefik:
+    command:
+      # --- For local development, we only need a minimal Traefik setup ---
+      # Enable the API Dashboard on port 8080 (insecure is fine for local)
+      - --api.insecure=true
+      # Tell Traefik to watch for Docker labels
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      # Define our entrypoint for plain HTTP traffic
+      - --entrypoints.web.address=:80
+    ports:
+      # Expose the HTTP port
+      - "80:80"
+      # Expose the dashboard on localhost:8080
+      - "8080:8080"
+    # We clear the volumes from the production config to avoid issues with
+    # let's encrypt certificates in a local, non-https environment.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  redirect-app:
+    # This 'build' directive overrides the 'image' directive from the main docker-compose.yml
+    build:
+      context: ./redirector
+      dockerfile: Dockerfile-dev
+    labels:
+      # --- Correct labels for local development ---
+      # Explicitly enable Traefik for this service
+      - "traefik.enable=true"
+      # Create a router named 'redirect-app-local' that ONLY listens on dev.localhost
+      # This overrides the Host() rule from the main docker-compose.yml
+      - "traefik.http.routers.redirect-app.rule=Host(`localhost`)"
+      # Route traffic from the 'web' (HTTP) entrypoint, and remove the 'websecure' one
+      - "traefik.http.routers.redirect-app.entrypoints=web"
+      # Explicitly disable TLS for this router in the local environment
+      - "traefik.http.routers.redirect-app.tls=false"
+    volumes:
+      # Mount the redirects folder for rule changes
+      - ./redirects:/app/redirects:ro
+      # Mount the application's source code for hot-reloading
+      - ./redirector:/app
+    ports:
+      # This port mapping is for your own debugging convenience. It allows you
+      # to access the Go app directly on localhost:8082, bypassing Traefik.
+      - "8082:8080"

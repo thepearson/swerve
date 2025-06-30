@@ -1,0 +1,26 @@
+# Use the official Go image. Using a full OS version can be easier for development.
+FROM golang:1.24
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install 'air' using its new, official module path.
+RUN go install github.com/air-verse/air@latest
+
+# Copy the dependency files and download them.
+# This leverages Docker's layer caching, so dependencies are only
+# re-downloaded if go.mod or go.sum changes.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application's source code into the container.
+# While the code is mounted via a volume, copying it here ensures that
+# the initial build context is correct.
+COPY . .
+
+# Expose the application port
+EXPOSE 8080
+
+# The command to run when the container starts.
+# 'air' will take over and manage the application's lifecycle.
+CMD ["air"]
