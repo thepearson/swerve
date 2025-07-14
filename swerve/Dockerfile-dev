@@ -11,6 +11,7 @@ RUN go install github.com/air-verse/air@latest
 # This leverages Docker's layer caching, so dependencies are only
 # re-downloaded if go.mod or go.sum changes.
 COPY go.mod go.sum ./
+RUN go mod tidy
 RUN go mod download
 
 # Copy the rest of the application's source code into the container.
