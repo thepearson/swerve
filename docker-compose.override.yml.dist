@@ -19,7 +19,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
-  redirect-app:
+  swerve:
     # This 'build' directive overrides the 'image' directive from the main docker-compose.yml
     build:
       context: ./swerve
@@ -28,13 +28,13 @@ services:
       # --- Correct labels for local development ---
       # Explicitly enable Traefik for this service
       - "traefik.enable=true"
-      # Create a router named 'redirect-app-local' that ONLY listens on dev.localhost
+      # Create a router named 'swerve' that ONLY listens on dev.localhost
       # This overrides the Host() rule from the main docker-compose.yml
-      - "traefik.http.routers.redirect-app.rule=Host(`localhost`)"
+      - "traefik.http.routers.swerve.rule=Host(`localhost`)"
       # Route traffic from the 'web' (HTTP) entrypoint, and remove the 'websecure' one
-      - "traefik.http.routers.redirect-app.entrypoints=web"
+      - "traefik.http.routers.swerve.entrypoints=web"
       # Explicitly disable TLS for this router in the local environment
-      - "traefik.http.routers.redirect-app.tls=false"
+      - "traefik.http.routers.swerve.tls=false"
     volumes:
       # Mount the redirects folder for rule changes
       - ./redirects:/app/redirects:ro
