@@ -18,7 +18,7 @@ COPY . .
 
 # Build the binary for a Linux environment, statically linked.
 # CGO_ENABLED=0 is important for creating a static binary without C dependencies.
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /url-redirector .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /swerve .
 
 # Stage 2: Create the final, small production image
 # Using alpine gives us a very small and secure base image.
@@ -31,7 +31,7 @@ USER appuser
 WORKDIR /app
 
 # Copy the binary from the builder stage
-COPY --from=builder /url-redirector .
+COPY --from=builder /swerve .
 
 # The redirects.csv file will be mounted via a volume in docker-compose,
 # so we don't strictly need to copy it here, but it can be useful for testing.
@@ -40,4 +40,4 @@ COPY --from=builder /url-redirector .
 EXPOSE 8080
 
 # The command to run when the container starts
-CMD ["/app/url-redirector"]
+CMD ["/app/swerve"]

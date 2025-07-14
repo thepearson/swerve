@@ -34,10 +34,7 @@ services:
       - web
 
   # This is your Go redirector application
-  redirect-app:
-    # Build the image from the Dockerfile in the redirector directory
-    # build: ./redirector
-    # container_name: redirect-app
+  swerve:
     image: "ghcr.io/thepearson/swerve:latest"
     restart: unless-stopped
     networks:
@@ -54,14 +51,14 @@ services:
       # IMPORTANT: Change these to your actual domains.
       # Multiple domains can be added via Host(`demo.example.com`,`extra.example.com`) etc
       # Ensure DNS for ALL these domains points to your server's IP.
-      - "traefik.http.routers.redirect-app.rule=Host(`redirector.example.com`)"
+      - "traefik.http.routers.swerve.rule=Host(`swerve.example.com`)"
 
       # Use the 'websecure' entrypoint (port 443/HTTPS)
-      - "traefik.http.routers.redirect-app.entrypoints=websecure"
+      - "traefik.http.routers.swerve.entrypoints=websecure"
       # Use the 'myresolver' Let's Encrypt resolver for SSL certificates
-      - "traefik.http.routers.redirect-app.tls.certresolver=myresolver"
+      - "traefik.http.routers.swerve.tls.certresolver=myresolver"
       # Tell Traefik which port the service is listening on inside the container
-      - "traefik.http.services.redirect-app.loadbalancer.server.port=8080"
+      - "traefik.http.services.swerve.loadbalancer.server.port=8080"
 
 networks:
   web:

@@ -22,8 +22,8 @@ A flexible, high-performance, open-source URL redirection service built with Go 
 
 The system consists of two main services orchestrated by Docker Compose:
 
-1. **Traefik:** Acts as the edge router. It terminates SSL, handles all incoming HTTP/HTTPS traffic, and routes requests to the Go application based on the requested hostname.
-2. **Go Redirector App:** A lightweight, high-performance HTTP server that loads all redirect rules from .csv files into memory. For each request, it finds the highest-weighted matching rule and issues the appropriate HTTP redirect
+1. **Traefik:** Acts as the edge router. It terminates SSL, handles all incoming HTTP/HTTPS traffic, and routes requests to the Swerve application based on the requested hostname.
+2. **Swerve Redirector App:** A lightweight, high-performance HTTP server that loads all redirect rules from .csv files into memory. For each request, it finds the highest-weighted matching rule and issues the appropriate HTTP redirect
 
 
 ### Request Flow:
@@ -40,7 +40,7 @@ The system consists of two main services orchestrated by Docker Compose:
 |-- redirects/                 # Folder for all your redirect rule files
 |   |-- old-site.com.csv
 |   `-- another-domain.net.csv
-|-- redirector/                # Go application source code
+|-- swerve/                # Go application source code
 |   |-- main.go
 |   |-- go.mod
 |   |-- go.sum
@@ -74,9 +74,9 @@ cd swerve
     ```
     - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
     ```
-    - Update the `redirect-app` labels with the domains you want to manage:
+    - Update the `swerve` labels with the domains you want to manage:
     ```
-    - "traefik.http.routers.redirect-app.rule=Host(`your-domain.com`,`another-domain.org`)"
+    - "traefik.http.routers.swerve.rule=Host(`your-domain.com`,`another-domain.org`)"
     ```
 
 3. **Add Redirect Rules:**
@@ -113,7 +113,7 @@ The local environment uses the `docker-compose.override.yml` file to enable hot-
 
 4. **Hot Reloading:**
 
-    * Any changes you make to the Go source code (`.go` files) in the `/redirector` directory will automatically trigger a recompile and restart of the application.
+    * Any changes you make to the Go source code (`.go` files) in the `/swerve` directory will automatically trigger a recompile and restart of the application.
     * Any changes to your redirect rules (`.csv` files) in the `/redirects` directory will also trigger an automatic restart.
 
 ## Configuration

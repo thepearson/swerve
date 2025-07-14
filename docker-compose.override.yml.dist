@@ -22,7 +22,7 @@ services:
   redirect-app:
     # This 'build' directive overrides the 'image' directive from the main docker-compose.yml
     build:
-      context: ./redirector
+      context: ./swerve
       dockerfile: Dockerfile-dev
     labels:
       # --- Correct labels for local development ---
@@ -39,7 +39,7 @@ services:
       # Mount the redirects folder for rule changes
       - ./redirects:/app/redirects:ro
       # Mount the application's source code for hot-reloading
-      - ./redirector:/app
+      - ./swerve:/app
     ports:
       # This port mapping is for your own debugging convenience. It allows you
       # to access the Go app directly on localhost:8082, bypassing Traefik.
