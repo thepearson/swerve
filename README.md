@@ -118,6 +118,21 @@ The local environment uses the `docker-compose.override.yml` file to enable hot-
 
 ## Configuration
 
+
+**Environemnt variables**
+
+The Swerve application is configured via environment variables:
+
+| Variable | Description | Default
+| --- | --- | --- |
+| `SWERVE_CSV_SRC` | The source of the redirect rule files. Can be a local path or an S3 URI (e.g., `s3://my-bucket/rules/`). | `/app/redirects` |
+| `AWS_REGION` | The AWS region for the S3 bucket. | (Not set) |
+| `AWS_ACCESS_KEY_ID` | Optional. Your AWS access key. If not set, the app will attempt to use an IAM role. | (Not set) |
+| `AWS_SECRET_ACCESS_KEY` | Optional. Your AWS secret key. | (Not set) |
+| `AWS_SESSION_TOKEN` | Optional. Required if using temporary AWS credentials. | (Not set) |
+
+
+
 **Redirect Rules** (`redirects/*.csv`)
 
 All redirect rules are defined in `.csv` files located in the `/redirects directory`. The service will read and process all `.csv` files in this folder.

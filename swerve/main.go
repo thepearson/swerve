@@ -18,6 +18,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -130,7 +131,20 @@ func loadRedirectsFromS3(s3Path string) (map[string][]Redirect, int, error) {
 		prefix = pathParts[1]
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	// Build AWS config options
+	var cfgOptions []func(*config.LoadOptions) error
+	awsAccessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	awsSecretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+
+	if awsAccessKeyID != "" && awsSecretAccessKey != "" {
+		log.Println("Using static AWS credentials from environment variables.")
+		creds := credentials.NewStaticCredentialsProvider(awsAccessKeyID, awsSecretAccessKey, os.Getenv("AWS_SESSION_TOKEN"))
+		cfgOptions = append(cfgOptions, config.WithCredentialsProvider(creds))
+	} else {
+		log.Println("Using default AWS credential chain (e.g., IAM role).")
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), cfgOptions...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to load AWS configuration: %w", err)
 	}

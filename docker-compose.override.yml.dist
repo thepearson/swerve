@@ -24,6 +24,13 @@ services:
     build:
       context: ./swerve
       dockerfile: Dockerfile-dev
+    environment:
+      # For local development
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+      SWERVE_CSV_SRC: ${SWERVE_CSV_SRC}
+      AWS_REGION: ${AWS_REGION}
     labels:
       # --- Correct labels for local development ---
       # Explicitly enable Traefik for this service
