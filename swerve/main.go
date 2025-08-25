@@ -55,6 +55,17 @@ type HealthStatus struct {
 	Redirects int    `json:"redirects"`
 }
 
+// RedirectLogEntry represents the structured log for a successful redirect.
+type RedirectLogEntry struct {
+	Timestamp string `json:"timestamp"`
+	Host      string `json:"host"`
+	Path      string `json:"path"`
+	TargetURL string `json:"target_url"`
+	Rule      string `json:"rule"`
+	Weight    int    `json:"weight"`
+	Type      string `json:"type"` // To distinguish this log type
+}
+
 // redirectMap stores a slice of redirect rules for each host, sorted by weight.
 var (
 	redirectMap = make(map[string][]Redirect)
@@ -282,7 +293,25 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if targetURL != "" {
-			log.Printf("Redirecting: %s%s -> %s (Rule: %s, Weight: %d)", host, path, targetURL, rule.SourcePathOrRegex, rule.Weight)
+			// *** UPDATED: Log successful redirects as structured JSON ***
+			logEntry := RedirectLogEntry{
+				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				Host:      host,
+				Path:      path,
+				TargetURL: targetURL,
+				Rule:      rule.SourcePathOrRegex,
+				Weight:    rule.Weight,
+				Type:      "redirect_hit",
+			}
+			logJSON, err := json.Marshal(logEntry)
+			if err != nil {
+				// Fallback to old logging format if JSON marshaling fails
+				log.Printf("ERROR marshaling log entry: %v", err)
+				log.Printf("Redirecting: %s%s -> %s (Rule: %s, Weight: %d)", host, path, targetURL, rule.SourcePathOrRegex, rule.Weight)
+			} else {
+				log.Println(string(logJSON))
+			}
+
 			http.Redirect(w, r, targetURL, rule.StatusCode)
 			return
 		}
