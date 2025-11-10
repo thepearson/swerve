@@ -1,3 +1,4 @@
 letsencrypt/
 docker-compose.override.yml
 .env
+redirects/*.csv
