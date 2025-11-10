@@ -55,17 +55,6 @@ type HealthStatus struct {
 	Redirects int    `json:"redirects"`
 }
 
-// RedirectLogEntry represents the structured log for a successful redirect.
-type RedirectLogEntry struct {
-	Timestamp string `json:"timestamp"`
-	Host      string `json:"host"`
-	Path      string `json:"path"`
-	TargetURL string `json:"target_url"`
-	Rule      string `json:"rule"`
-	Weight    int    `json:"weight"`
-	Type      string `json:"type"` // To distinguish this log type
-}
-
 // redirectMap stores a slice of redirect rules for each host, sorted by weight.
 var (
 	redirectMap = make(map[string][]Redirect)
@@ -260,7 +249,11 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 	if i := strings.LastIndex(host, ":"); i != -1 {
 		host = host[:i]
 	}
-	path := r.URL.Path
+	
+	// Use RequestURI to include the query string in matching
+	requestURI := r.RequestURI
+	// Use r.URL.Path for the $path replacement
+	pathOnly := r.URL.Path
 
 	mapMutex.RLock()
 	rules, hostExists := redirectMap[host]
@@ -271,53 +264,61 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	normalizedPath := path
-	if len(path) > 1 && strings.HasSuffix(path, "/") {
-		normalizedPath = strings.TrimRight(path, "/")
-	}
-
 	for _, rule := range rules {
 		targetURL := ""
 
 		if rule.MatchType == "exact" {
-			normalizedRulePath := rule.SourcePathOrRegex
-			if len(normalizedRulePath) > 1 && strings.HasSuffix(normalizedRulePath, "/") {
-				normalizedRulePath = strings.TrimRight(normalizedRulePath, "/")
-			}
-			if normalizedRulePath == normalizedPath {
+			// First, try a direct match against the full path + query
+			if rule.SourcePathOrRegex == requestURI {
 				targetURL = rule.TargetURLFormat
+			} else if r.URL.RawQuery == "" {
+				// If no query, fall back to trailing slash normalization (on path only)
+				normalizedRequestPath := pathOnly
+				if len(pathOnly) > 1 && strings.HasSuffix(pathOnly, "/") {
+					normalizedRequestPath = strings.TrimRight(pathOnly, "/")
+				}
+				
+				normalizedRulePath := rule.SourcePathOrRegex
+				if len(normalizedRulePath) > 1 && strings.HasSuffix(normalizedRulePath, "/") {
+					normalizedRulePath = strings.TrimRight(normalizedRulePath, "/")
+				}
+				
+				if normalizedRulePath == normalizedRequestPath {
+					targetURL = rule.TargetURLFormat
+				}
 			}
-		} else if rule.MatchType == "regex" && rule.Regex != nil && rule.Regex.MatchString(path) {
-			rewrittenURL := strings.ReplaceAll(rule.TargetURLFormat, "$path", path)
-			targetURL = rule.Regex.ReplaceAllString(path, rewrittenURL)
+		} else if rule.MatchType == "regex" && rule.Regex != nil && rule.Regex.MatchString(requestURI) {
+			// Regex matches against the full requestURI
+			// But $path replacement still uses the pathOnly
+			rewrittenURL := strings.ReplaceAll(rule.TargetURLFormat, "$path", pathOnly)
+			targetURL = rule.Regex.ReplaceAllString(requestURI, rewrittenURL)
 		}
 
 		if targetURL != "" {
-			// *** UPDATED: Log successful redirects as structured JSON ***
-			logEntry := RedirectLogEntry{
-				Timestamp: time.Now().UTC().Format(time.RFC3339),
-				Host:      host,
-				Path:      path,
-				TargetURL: targetURL,
-				Rule:      rule.SourcePathOrRegex,
-				Weight:    rule.Weight,
-				Type:      "redirect_hit",
-			}
-			logJSON, err := json.Marshal(logEntry)
-			if err != nil {
-				// Fallback to old logging format if JSON marshaling fails
-				log.Printf("ERROR marshaling log entry: %v", err)
-				log.Printf("Redirecting: %s%s -> %s (Rule: %s, Weight: %d)", host, path, targetURL, rule.SourcePathOrRegex, rule.Weight)
-			} else {
-				log.Println(string(logJSON))
-			}
-
+			logData, _ := json.Marshal(map[string]interface{}{
+				"type":          "redirect",
+				"status":        "success",
+				"host":          host,
+				"request_uri":   requestURI, // Log the full request URI
+				"target":        targetURL,
+				"rule_host":     rule.SourceHost,
+				"rule_match":    rule.MatchType,
+				"rule_path":     rule.SourcePathOrRegex,
+				"rule_weight":   rule.Weight,
+			})
+			log.Println(string(logData))
 			http.Redirect(w, r, targetURL, rule.StatusCode)
 			return
 		}
 	}
 
-	log.Printf("No match found for: %s%s", host, path)
+	logData, _ := json.Marshal(map[string]interface{}{
+		"type":        "redirect",
+		"status":      "not_found",
+		"host":        host,
+		"request_uri": requestURI, // Log the full request URI
+	})
+	log.Println(string(logData))
 	http.NotFound(w, r)
 }
 
