@@ -296,6 +296,7 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 
 		if targetURL != "" {
 			logData, _ := json.Marshal(map[string]interface{}{
+				"timestamp":     time.Now().UTC().Format(time.RFC3339),
 				"type":          "redirect",
 				"status":        "success",
 				"host":          host,
@@ -313,6 +314,7 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logData, _ := json.Marshal(map[string]interface{}{
+		"timestamp":   time.Now().UTC().Format(time.RFC3339),
 		"type":        "redirect",
 		"status":      "not_found",
 		"host":        host,
